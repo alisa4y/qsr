@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <link rel="stylesheet" href="./index.css">
+</head>
+
+<body>
+  <div class="info">
+    <div data-branch="input" class="container">
+      <input type="text" data-key="name" />
+
+    </div>
+    <span data-key="name" data-bind=".info input" data-view="showName"></span>
+  </div>
+  <div class="list">
+    <ul data-key="counters" data-item="counter"></ul>
+    <button data-item-add>add</button>
+    <button id="logCounters">log counters</button>
+    <button id="randomSetter">random setter</button>
+    <div>
+      <span>sum:</span>
+      <span data-key="sum" data-bind=".list" data-compute="sumCounters">
+
+      </span>
+    </div>
+  </div>
+
+  <template id="counter">
+    <div class="counter">
+      <button>-</button>
+      <span data-key="count">0</span>
+      <button>+</button>
+      <button data-item-remove>X</button>
+    </div>
+      
+  </template>
+  <script src="./script.js"></script>
+</body>
+
+</html>
