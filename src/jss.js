@@ -189,14 +189,16 @@ function createSetter(elm, ds = new DataSetter()) {
     if (item) {
       ds.setArray(item)
     } else ds.setContent(elm)
-    return
-  }
-  for (let i = 0; i < elm.children.length; i++) {
-    const child = elm.children[i]
-    ds.inChild(i)
-    createSetter(child, ds)
-    ds.outChild()
-  }
+  } else if (item) {
+    ds.elmArgs.push(elm)
+    ds.setArray(item)
+  } else
+    for (let i = 0; i < elm.children.length; i++) {
+      const child = elm.children[i]
+      ds.inChild(i)
+      createSetter(child, ds)
+      ds.outChild()
+    }
   while (convertedCount-- > 0) ds.dataVars.pop()
 }
 const global_fns = {}
@@ -252,8 +254,9 @@ class DataSetter {
     const elmName = this.elmArgs.params.at(-1)
     const data = this.dataVars.at(-1)
     this.body += `
+    if(!Array.isArray(${data})) throw new Error(${data}+" is not an array");
   while(${elmName}.children.length > ${data}.length){${elmName}.removeChild(${elmName}.lastChild);}\n
-  while(${elmName}.children.length < ${data}.length){${elmName}.appendChild(document.createElement(t-${item}));}\n
+  while(${elmName}.children.length < ${data}.length){${elmName}.appendChild(document.createElement("t-${item}"));}\n
   {
     let {children} = ${elmName};
     for(let i=0;i < children.length;i++){
