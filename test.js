@@ -1,12 +1,4 @@
-let i = 0
-let n = 0
-do {
-  i++
-
-  if (i === 3) {
-    continue
-  }
-
-  n += i
-  console.log(n)
-} while (i < 5)
+let ar1 = [1, 2, 3]
+let ar2 = [4, 5]
+Object.assign(ar1, ar2)
+console.log(ar1)

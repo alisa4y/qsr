@@ -10,7 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "js-tools": "file:../js-tools"
+    "js-tools": "file:../js-tools",
+    "ro": "file:../ReactiveObject"
   },
   "devDependencies": {
     "server": "file:../server"

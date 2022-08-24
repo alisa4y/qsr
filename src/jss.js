@@ -1,6 +1,8 @@
 import { qsa, ael, ObserveElm, qs } from "./tools.js"
 import { debounce, err, forin, ox } from "js-tools"
+import { RO } from "ro"
 
+// TODO:  deep equal set instead of Object.assign
 // TODO: add pseudo selector like :click support for jss
 
 export function domTraversal(cb, elm = document.body) {
@@ -140,11 +142,12 @@ export const jss = (instructions = {}, root = document.body) => {
     }, root)
   })
 }
-const definePropertyDescriptor = (obj, key, get) => {
+const definePropertyDescriptor = (obj, key, get, set) => {
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: false,
     get,
+    set,
   })
 }
 function lift(elm, data = {}) {
@@ -152,39 +155,63 @@ function lift(elm, data = {}) {
   if (branch) {
     data = branch.split(".").reduce((o, k) => (o[k] = {}), data)
   }
+  let ar
+  if (item) {
+    let guard = false
+    ObserveElm(() => {
+      if (guard) return
+      let newAr = [...elm.children].map(c => c.eval)
+      if (newAr.length < ar.length)
+        for (let i = 0; i < ar.length - newAr.length; i++) ar.pop()
+      Object.assign(ar, newAr)
+    }, elm)
+    const ro = RO({
+      ar: [...elm.children].map(c => c.eval),
+      setElm: ({ ar }) => {
+        guard = true
+        setHtmlElm(elm, ar)
+        setTimeout(() => {
+          guard = false
+        }, 100)
+      },
+    })
+    ar = ro.ar
+    ro.setElm
+    if (key === undefined) return ar
+  }
   if (key) {
     if (item) {
-      definePropertyDescriptor(data, key, () =>
-        [...elm.children].map(c => c.eval)
-      )
-    } else
       definePropertyDescriptor(
         data,
         key,
-        () => elm.__value ?? elm.value ?? elm.textContent
+        () => ar,
+        v => setHtmlElm(elm, v)
       )
+    } else {
+      const prop = elm.value === undefined ? "textContent" : "value"
+      let getter
+      if (elm.type === "number") getter = () => parseInt(elm.value)
+      else getter = () => elm[prop]
+      definePropertyDescriptor(data, key, getter, v => setHtmlElm(elm, v))
+    }
     return data
   }
   for (const child of elm.children) lift(child, data)
   return data
 }
 function createSetter(elm, ds = new DataSetter()) {
-  const { branch, key, item, compute, view } = elm.dataset || {}
+  const { branch, key } = elm.dataset || {}
   let convertedCount = 0
 
-  if (compute) {
-    ds.computeData(global_fns[compute], compute)
-    convertedCount++
-  }
   if (branch || key) {
     ds.mapData([branch, key].filter(k => k).join("."))
     convertedCount++
   }
-  if (key) ds.set__value(elm, key)
-  if (view) {
-    ds.computeData(global_fns[view], view)
-    convertedCount++
-  }
+  buildSetter(elm, ds)
+  while (convertedCount-- > 0) ds.dataVars.pop()
+}
+function buildSetter(elm, ds) {
+  const { key, item } = elm.dataset || {}
   if (key) {
     if (item) {
       ds.setArray(item)
@@ -199,7 +226,6 @@ function createSetter(elm, ds = new DataSetter()) {
       createSetter(child, ds)
       ds.outChild()
     }
-  while (convertedCount-- > 0) ds.dataVars.pop()
 }
 const global_fns = {}
 export function g_(name, fn) {
@@ -227,23 +253,6 @@ class DataSetter {
   mapData(branch) {
     const [dataVar, newDataVar] = this.genDataVar()
     this.body += `let ${newDataVar}=${dataVar}.${branch}\n`
-  }
-  computeData(fn, fnName) {
-    if (fn === undefined) {
-      err("function is not defined: ", fnName)
-    }
-    const varFn = this.fnArgs.push(fn)
-    const [dataVar, newDataVar] = this.genDataVar()
-    this.body += `let ${newDataVar}=${varFn}(${dataVar});\n`
-  }
-  set__value(elm) {
-    this.usedDepth.push(this.childDepth.slice())
-    const elmName = this.elmArgs.push(elm)
-    this.body += `${elmName}.__value=${this.dataVars.at(-1)};\n`
-    if (elm.value !== undefined)
-      elm.addEventListener("input", () => {
-        elm.__value = elm.value
-      })
   }
   setContent(elm) {
     const prop = elm.value === undefined ? "textContent" : "value"
@@ -281,7 +290,7 @@ function buildDataSetter(elm, ds = new DataSetter()) {
   )
 }
 function genSetter(elm, ds = new DataSetter()) {
-  createSetter(elm, ds)
+  buildDataSetter(elm, ds)
   if (!ds.body) return ox
   const setter = new Function(
     "data",
