@@ -40,18 +40,9 @@ export function ce(tag, options) {
   })
   return elm
 }
-export function ael(elm, evName, cb) {
-  elm.addEventListener(evName, cb)
+export function ael(elm, evName, cb, options) {
+  elm.addEventListener(evName, cb, options)
 }
-export function ObserveElm(callback, elm = document.body) {
-  const observer = new MutationObserver(callback)
-  observer.observe(elm, {
-    childList: true,
-    subtree: true,
-  })
-  return observer
-}
-
 export const loadScript = src =>
   new Promise((resolve, reject) => {
     const script = document.createElement("script")
@@ -66,4 +57,9 @@ export function onClickAway(elm, fn) {
     if (elm.contains(e.target)) return
     fn()
   })
+}
+export function obs(elm, cb, config) {
+  const observer = new MutationObserver(cb)
+  observer.observe(elm, config)
+  return observer
 }

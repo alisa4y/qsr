@@ -1,8 +1,6 @@
-import { qsa, ael, ObserveElm, qs } from "./tools.js"
-import { debounce, err, forin, ox } from "js-tools"
-import { RO } from "ro"
+import { qsa, ael, qs, ce } from "./tools.js"
+import { err, forin, isNumber, oKeys, ox } from "js-tools"
 
-// TODO:  deep equal set instead of Object.assign
 // TODO: add pseudo selector like :click support for jss
 
 export function domTraversal(cb, elm = document.body) {
@@ -23,7 +21,7 @@ const defineElements = () =>
         connectedCallback() {
           this.appendChild(template.content.cloneNode(true))
           let elmArgs = getElmArgs(this, dataSetter)
-          const args = [null, ...elmArgs, ...dataSetter.fnArgs.args]
+          const args = [null, ...elmArgs]
           this.__set = data => {
             args[0] = data
             setter.apply(null, args)
@@ -49,11 +47,6 @@ const addItem = (elm, item) => {
   elm.appendChild(document.createElement("t-" + item))
 }
 const defaultInstructions = {
-  "*[data-bind]": elm => {
-    const { bind } = elm.dataset
-    const srcElm = qs(handleSelfSelector(elm, bind))
-    bindElm(srcElm, elm)
-  },
   "*[data-item-add]": elm => {
     let pre = elm.previousElementSibling
     let next = elm.nextElementSibling
@@ -78,7 +71,7 @@ const defaultInstructions = {
         return ael(elm, "click", e => {
           e.stopImmediatePropagation()
           parent.remove()
-          broadcast(grandParent)
+          // broadcast(grandParent)
         })
       }
       parent = grandParent
@@ -90,19 +83,11 @@ const genId = (function () {
   let id = 0
   return () => "id" + id++
 })()
-function handleSelfSelector(elm, selector) {
-  if (selector.includes("&")) {
-    if (!elm.id) elm.id = genId()
-    return selector.replace("&", `#${elm.id}`)
-  }
-  return selector
-}
 export const jss = (instructions = {}, root = document.body) => {
   instructions = { ...defaultInstructions, ...instructions }
   function applyInstructions(elm) {
     forin(instructions, (fn, selector) => {
-      s = handleSelfSelector(elm, selector)
-      if (!elm.__applied?.[selector] && elm.matches(s)) {
+      if (!elm.__applied?.[selector] && elm.matches(selector)) {
         const cleanup = fn(elm)
         if (typeof cleanup === "function") {
           elm.__cleanup ??= {}
@@ -117,29 +102,36 @@ export const jss = (instructions = {}, root = document.body) => {
     extendsHtmlProto()
     defineElements()
     domTraversal(applyInstructions)
-    ObserveElm(mutationList => {
+    const observer = new MutationObserver(mutationList => {
       mutationList.forEach(mutation => {
-        if (mutation.type === "childList") {
-          ;[...mutation.addedNodes]
-            .filter(node => node.nodeType === 1)
-            .forEach(elm => domTraversal(applyInstructions, elm))
-          ;[...mutation.removedNodes]
-            .filter(node => node.type === 1)
-            .forEach(elm => domTraversal(clean, elm))
-        } else if (mutation.type === "attributes") {
-          const elm = mutation.target
-          if (
+        switch (mutation.type) {
+          case "childList":
+            ;[...mutation.addedNodes]
+              .filter(node => node.nodeType === 1)
+              .forEach(elm => domTraversal(applyInstructions, elm))
+            ;[...mutation.removedNodes]
+              .filter(node => node.type === 1)
+              .forEach(elm => domTraversal(clean, elm))
+            break
+          case "attributes":
+            const elm = mutation.target
             elm.__applied &&
-            Object.keys(elm.__applied).some(selector => !elm.matches(selector))
-          ) {
-            clean(elm)
-            const clone = elm.cloneNode(true)
-            elm.parentNode.replaceChild(clone, elm)
-            applyInstructions(clone)
-          } else applyInstructions(elm)
+              oKeys(elm.__applied)
+                .filter(selector => !elm.matches(selector))
+                .forEach(selector => {
+                  elm.__cleanup?.[selector]?.()
+                  delete elm.__applied[selector]
+                })
+            applyInstructions(elm)
+            break
         }
       })
-    }, root)
+    })
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    })
   })
 }
 const definePropertyDescriptor = (obj, key, get, set) => {
@@ -155,42 +147,23 @@ function lift(elm, data = {}) {
   if (branch) {
     data = branch.split(".").reduce((o, k) => (o[k] = {}), data)
   }
-  let ar
-  if (item) {
-    let guard = false
-    ObserveElm(() => {
-      if (guard) return
-      let newAr = [...elm.children].map(c => c.eval)
-      if (newAr.length < ar.length)
-        for (let i = 0; i < ar.length - newAr.length; i++) ar.pop()
-      Object.assign(ar, newAr)
-    }, elm)
-    const ro = RO({
-      ar: [...elm.children].map(c => c.eval),
-      setElm: ({ ar }) => {
-        guard = true
-        setHtmlElm(elm, ar)
-        setTimeout(() => {
-          guard = false
-        }, 100)
-      },
-    })
-    ar = ro.ar
-    ro.setElm
-    if (key === undefined) return ar
+  if (item && key === undefined) {
+    return createArrayEval(elm)
   }
   if (key) {
     if (item) {
+      const arrayEval = createArrayEval(elm)
       definePropertyDescriptor(
         data,
         key,
-        () => ar,
+        () => arrayEval,
         v => setHtmlElm(elm, v)
       )
     } else {
       const prop = elm.value === undefined ? "textContent" : "value"
       let getter
-      if (elm.type === "number") getter = () => parseInt(elm.value)
+      if (elm.getAttribute("type") === "number")
+        getter = () => parseInt(elm[prop])
       else getter = () => elm[prop]
       definePropertyDescriptor(data, key, getter, v => setHtmlElm(elm, v))
     }
@@ -199,7 +172,7 @@ function lift(elm, data = {}) {
   for (const child of elm.children) lift(child, data)
   return data
 }
-function createSetter(elm, ds = new DataSetter()) {
+function createSetter(elm, ds) {
   const { branch, key } = elm.dataset || {}
   let convertedCount = 0
 
@@ -214,11 +187,11 @@ function buildSetter(elm, ds) {
   const { key, item } = elm.dataset || {}
   if (key) {
     if (item) {
-      ds.setArray(item)
+      ds.setArray(item, elm)
     } else ds.setContent(elm)
+    ds.inChild.length > 0 && ds.usedDepth.push([...ds.childDepth])
   } else if (item) {
-    ds.elmArgs.push(elm)
-    ds.setArray(item)
+    ds.setArray(item, elm)
   } else
     for (let i = 0; i < elm.children.length; i++) {
       const child = elm.children[i]
@@ -235,32 +208,27 @@ export function g_(name, fn) {
 class DataSetter {
   constructor() {
     this.elmArgs = new Args()
-    this.fnArgs = new Args()
     this.dataVars = ["data"]
     this.body = ""
     this.usedDepth = []
     this.childDepth = []
     this.varId = 0
   }
-  genVar() {
-    return "_" + this.varId++
-  }
   genDataVar() {
-    const newDataVar = this.genVar()
-    this.dataVars.push(newDataVar)
-    return [this.dataVars.at(-2), newDataVar]
+    this.dataVars.push("_" + this.varId++)
   }
   mapData(branch) {
-    const [dataVar, newDataVar] = this.genDataVar()
+    this.genDataVar()
+    const [dataVar, newDataVar] = this.dataVars.slice(-2)
     this.body += `let ${newDataVar}=${dataVar}.${branch}\n`
   }
   setContent(elm) {
     const prop = elm.value === undefined ? "textContent" : "value"
-    const elmName = this.elmArgs.params.at(-1)
+    const elmName = this.elmArgs.push(elm)
     this.body += `${elmName}.${prop}=${this.dataVars.at(-1)};\n`
   }
-  setArray(item) {
-    const elmName = this.elmArgs.params.at(-1)
+  setArray(item, elm) {
+    const elmName = this.elmArgs.push(elm)
     const data = this.dataVars.at(-1)
     this.body += `
     if(!Array.isArray(${data})) throw new Error(${data}+" is not an array");
@@ -269,7 +237,7 @@ class DataSetter {
   {
     let {children} = ${elmName};
     for(let i=0;i < children.length;i++){
-      children[i].__set(${data}[i]);
+      children[i].eval = ${data}[i];
   }}\n`
   }
   inChild(i) {
@@ -280,25 +248,15 @@ class DataSetter {
   }
 }
 function buildDataSetter(elm, ds = new DataSetter()) {
-  createSetter(elm, ds)
+  buildSetter(elm, ds)
   if (!ds.body) return ox
-  return new Function(
-    "data",
-    ds.elmArgs.params.join(","),
-    ds.fnArgs.params.join(","),
-    ds.body
-  )
+  return new Function("data", ds.elmArgs.params.join(","), ds.body)
 }
 function genSetter(elm, ds = new DataSetter()) {
-  buildDataSetter(elm, ds)
+  buildSetter(elm, ds)
   if (!ds.body) return ox
-  const setter = new Function(
-    "data",
-    ds.elmArgs.params.join(","),
-    ds.fnArgs.params.join(","),
-    ds.body
-  )
-  const args = [null, ...ds.elmArgs.args, ...ds.fnArgs.args]
+  const setter = new Function("data", ds.elmArgs.params.join(","), ds.body)
+  const args = [null, ...ds.elmArgs.args]
   return d => {
     args[0] = d
     setter.apply(null, args)
@@ -323,18 +281,10 @@ class Args {
 function getElmArgs(elm, ds) {
   return ds.usedDepth.map(depth => depth.reduce((e, i) => e.children[i], elm))
 }
-function bindElm(srcElm, conElm) {
-  srcElm.__listeners ??= []
-  srcElm.__listeners.push(conElm)
-  if (srcElm.value !== undefined)
-    ael(srcElm, "input", e => {
-      conElm.eval = srcElm.eval
-    })
-}
 function setHtmlElm(elm, v, visitedElms = new Set()) {
-  if (visitedElms.has(elm)) return
+  // if (visitedElms.has(elm)) return
   ;(elm.__set ?? (elm.__set = genSetter(elm)))(v)
-  broadcast(elm, visitedElms)
+  // broadcast(elm, visitedElms)
 }
 function broadcast(elm, visitedElms = new Set()) {
   if (visitedElms.has(elm)) return
@@ -345,4 +295,61 @@ function broadcast(elm, visitedElms = new Set()) {
       setHtmlElm(l, elm.eval, visitedElms)
     })
   } while ((elm = elm.parentElement))
+}
+const arProto = Array.prototype
+function createArrayEval(elm) {
+  return new Proxy([], {
+    set(t, p, v) {
+      if (isNumber(p)) {
+        elm.children[p].eval = v
+      }
+      return true
+    },
+    get(t, p) {
+      if (isNumber(p)) return elm.children[p].eval
+      switch (p) {
+        case "push":
+          return (...v) => {
+            v.map(value => {
+              let item = ce("t-" + elm.dataset.item)
+              elm.append(item)
+              item.eval = value
+            })
+          }
+        case "pop":
+          return () => elm.lastChild.remove()
+        case "unshift":
+          return (...v) => {
+            v.map(value => {
+              let item = ce("t-" + elm.dataset.item)
+              elm.insertBefore(item, elm.firstChild)
+              item.eval = value
+            })
+          }
+        case "shift":
+          return () => elm.firstChild.remove()
+        case "splice":
+          return (startIndex, deleteCount, ...v) => {
+            for (
+              let i = startIndex;
+              i < startIndex + deleteCount - v.length;
+              i++
+            ) {
+              elm.children[i].remove()
+            }
+            let startElm = elm.children[startIndex]
+            v.forEach(value => {
+              let item = ce("t-" + elm.dataset.item)
+              startElm.insertAfter("afterend", item)
+              item.eval = value
+              startElm = startElm.nextElementSibling
+            })
+          }
+        case length:
+          return elm.children.length
+        default:
+          return arProto[p].bind([...elm.children].map(child => child.eval))
+      }
+    },
+  })
 }
