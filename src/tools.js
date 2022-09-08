@@ -58,8 +58,22 @@ export function onClickAway(elm, fn) {
     fn()
   })
 }
-export function obs(elm, cb, config) {
-  const observer = new MutationObserver(cb)
-  observer.observe(elm, config)
-  return observer
+export function obs(
+  elm,
+  cb,
+  config = {
+    childList: true,
+    subtree: true,
+    attributes: true,
+  }
+) {
+  if (elm.value === undefined) {
+    const observer = new MutationObserver(cb)
+    observer.observe(elm, config)
+    return observer
+  } else {
+    return elm.addEventListener("change", () => {
+      cb(elm.value)
+    })
+  }
 }
