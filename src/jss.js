@@ -200,11 +200,6 @@ function buildSetter(elm, ds) {
       ds.outChild()
     }
 }
-const global_fns = {}
-export function g_(name, fn) {
-  if (typeof name === "function") return (global_fns[name.name] = name)
-  global_fns[name] = fn
-}
 class DataSetter {
   constructor() {
     this.elmArgs = new Args()
@@ -285,16 +280,6 @@ function setHtmlElm(elm, v, visitedElms = new Set()) {
   // if (visitedElms.has(elm)) return
   ;(elm.__set ?? (elm.__set = genSetter(elm)))(v)
   // broadcast(elm, visitedElms)
-}
-function broadcast(elm, visitedElms = new Set()) {
-  if (visitedElms.has(elm)) return
-  do {
-    if (visitedElms.has(elm)) break
-    visitedElms.add(elm)
-    elm.__listeners?.forEach(l => {
-      setHtmlElm(l, elm.eval, visitedElms)
-    })
-  } while ((elm = elm.parentElement))
 }
 const arProto = Array.prototype
 function createArrayEval(elm) {

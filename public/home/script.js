@@ -2,10 +2,6 @@ import { getRandomInt } from "js-tools"
 import { g_, jss } from "../../src/jss"
 import { ael, qs } from "../../src/tools"
 
-g_("sumCounters", ({ counters }) => ({
-  sum: counters.reduce((sum, { count }) => sum + count, 0),
-}))
-g_("showName", name => "name: " + name)
 jss({
   ".counter": elm => {
     const [btn_dec, data, btn_inc] = elm.children
