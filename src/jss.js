@@ -83,7 +83,7 @@ const genId = (function () {
   let id = 0
   return () => "id" + id++
 })()
-export const jss = (instructions = {}, root = document.body) => {
+export const jss = (instructions = {}, root) => {
   instructions = { ...defaultInstructions, ...instructions }
   function applyInstructions(elm) {
     forin(instructions, (fn, selector) => {
@@ -127,7 +127,7 @@ export const jss = (instructions = {}, root = document.body) => {
         }
       })
     })
-    observer.observe(root, {
+    observer.observe(root || document.body, {
       childList: true,
       subtree: true,
       attributes: true,
