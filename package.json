@@ -2,19 +2,23 @@
   "name": "jss",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
-  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "npx run",
+    "test": "npx cypress open"
   },
-  "author": "",
+  "author": "ali safari",
   "license": "ISC",
   "dependencies": {
-    "js-tools": "file:../js-tools",
-    "ro": "file:../ReactiveObject"
+    "flowco": "file:../js-logic"
   },
   "devDependencies": {
-    "server": "file:../server"
+    "cypress": "^11.1.0",
+    "server": "file:../server",
+    "typescript": "^4.9.3"
   },
   "repository": {
     "type": "git",

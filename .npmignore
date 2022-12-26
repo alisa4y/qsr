@@ -1,7 +1,5 @@
-node_modules
+cypress
 public
-test
+src
 server.config.js
-test.js
-package-lock.json
-README.md
+tsconfig.json

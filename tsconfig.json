@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "Node16",
+    "noImplicitAny": true,
+    "moduleResolution": "Node",
+    "outDir": "dist"
+  },
+  "include": [
+    "src"
+  ]
+}
