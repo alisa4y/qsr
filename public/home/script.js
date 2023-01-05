@@ -54,14 +54,11 @@ jss({
     const dataElm = findAncestors("[data-item-data]", elm).pop()
     let child = elm
     if (dataElm) child = dataElm
-    const list = findNearestAncestorSibling("[data-item]", child)
-    if (!list)
-      return console.warn(
-        "couldn't find element with item attribute to set adder"
-      )
+    let list = findNearestAncestorSibling("[data-item]", child)
+    if (!list) list = qs("table tbody")
     ael(elm, "click", e => {
       e.preventDefault()
-      list.eval.push(dataElm ?? { count: 0 })
+      list.eval.push(dataElm?.eval ?? { count: 0 })
     })
   },
   "[data-item-remove]": elm => {
@@ -73,6 +70,7 @@ jss({
     const form = findNearestAncestorSibling("form:has([data-item-edit])", list)
     const formSubmit = qs("[data-item-edit]", form)
     ael(elm, "click", e => {
+      e.preventDefault()
       form.eval = child.eval
       formSubmit.onclick = e => {
         e.preventDefault()
