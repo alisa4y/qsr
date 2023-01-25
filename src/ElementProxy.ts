@@ -84,11 +84,13 @@ export class DataSetter {
   varId: number
   body: string
   elmArgs: Args
+  templateArgs: Args
   dataVars: string[]
   usedDepth: number[][]
   childDepth: number[]
   constructor() {
     this.elmArgs = new Args()
+    this.templateArgs = new Args()
     this.dataVars = ["data"]
     this.body = ""
     this.usedDepth = []
@@ -113,10 +115,9 @@ export class DataSetter {
   }
   setArray(item: string, elm: XElement) {
     const elmName = this.elmArgs.push(elm)
-    const templateName = this.elmArgs.push(document.getElementById(item))
+    const templateName = this.templateArgs.push(document.getElementById(item))
     const data = this.dataVars.at(-1)
-    const wrapper =
-      elm.tagName === "TBODY" ? "tr" : elm.dataset.wrapper || "div"
+    const wrapper = getWrapper(elm.tagName, elm.dataset.wrapper)
     this.body += `
     if(!Array.isArray(${data})) throw new Error(${data}+" is not an array");
   while(${elmName}.children.length > ${data}.length){${elmName}.removeChild(${elmName}.lastChild);}\n
@@ -148,16 +149,32 @@ export class DataSetter {
     this.childDepth.pop()
   }
 }
+function getWrapper(tagname: string, wrapper = "div") {
+  switch (tagname) {
+    case "TBODY":
+      return "tr"
+    case "UL":
+    case "OL":
+      return "li"
+    default:
+      return wrapper
+  }
+}
 export function buildDataSetter(elm: Element, ds = new DataSetter()) {
   buildSetter(elm as XElement, ds)
   if (!ds.body) return ox
-  return new Function("data", ds.elmArgs.params.join(","), ds.body)
+  return new Function("data", buildArgs(ds), ds.body)
+}
+function buildArgs(ds: DataSetter) {
+  return [ds.elmArgs.params.join(), ds.templateArgs.params.join()]
+    .filter(p => p !== "")
+    .join()
 }
 function genSetter(elm: XElement, ds = new DataSetter()) {
   buildSetter(elm, ds)
   if (!ds.body) return ox
-  const setter = new Function("data", ds.elmArgs.params.join(","), ds.body)
-  const args = [null, ...ds.elmArgs.args]
+  const setter = new Function("data", buildArgs(ds), ds.body)
+  const args = [null, ...ds.elmArgs.args, ...ds.templateArgs.args]
   return (d: any) => {
     args[0] = d
     setter.apply(null, args)
@@ -181,13 +198,13 @@ class Args {
   }
   static id = 0
 }
-export function setHtmlElement(elm: XElement, v: any, visitedElms = new Set()) {
+export function setHtmlElement(elm: XElement, v: any) {
   ;(elm.__set ?? (elm.__set = genSetter(elm)))(v)
 }
-const arProto = Array.prototype
 const copyX = (o: XElement) => JSON.parse(JSON.stringify(o.eval))
+const ArProto = Array.prototype
 function createArrayEval(elm: XElement) {
-  const wrapper = elm.tagName === "TBODY" ? "tr" : elm.dataset.wrapper || "div"
+  const wrapper = getWrapper(elm.tagName, elm.dataset.wrapper)
   const template = document.getElementById(
     elm.dataset.item
   ) as HTMLTemplateElement
@@ -279,9 +296,13 @@ function createArrayEval(elm: XElement) {
         case "length":
           return elm.children.length
         default:
-          return arProto[p as any].bind(
-            [...elm.children].map((child: XElement) => child.eval)
-          )
+          if (p in ArProto)
+            return ArProto[p as any].bind(
+              [...elm.children].map((child: XElement) => child.eval)
+            )
+          return (
+            [...elm.children].map((child: XElement) => child.eval) as any
+          )[p]
       }
     },
   })

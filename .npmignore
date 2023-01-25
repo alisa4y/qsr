@@ -1,5 +1,7 @@
 cypress
 public
 src
+cypress.config.ts
+docs.txt
 server.config.js
 tsconfig.json

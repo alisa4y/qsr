@@ -12,6 +12,13 @@ describe("jss", () => {
     inpEcho.contains("hello world")
   })
 })
+describe("it's reactive like css", () => {
+  it("upade element whenevr it's selector changes", () => {
+    cy.visit("http://localhost:3000/observe")
+    cy.get("button.change-color").click()
+    cy.get(".blue").should("have.css", "background-color", "rgb(0, 0, 255)")
+  })
+})
 describe("data item that behaves as array", () => {
   it("simply can modify some counter", () => {
     cy.visit("localhost:3000")

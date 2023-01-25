@@ -1,66 +1,85 @@
-import { ael, domTraversal } from "./tools"
+import { ael, domTraversal, qsa } from "./tools"
 import { Fn, XElement } from "./types"
-import { defaultInstructions } from "./defaultInstructions"
+import { defineTemplates } from "./defaultInstructions"
 import { getLiftProxy, setHtmlElement } from "./ElementProxy"
 
 // TODO: add pseudo selector like :click support for jss
-
-export let jss = (
-  instructions: Record<string, (elm: XElement) => void | Fn> = {},
+type Instructions = Record<string, (elm: XElement) => void | Fn>
+let jssfn = (
+  instructions: Instructions = {},
   root: HTMLElement = document.body
 ) => {
-  instructions = { ...defaultInstructions, ...instructions }
-  function applyInstructions(elm: XElement) {
-    for (const selector in instructions) {
-      const fn = instructions[selector]
-      if (!elm.__applied?.[selector] && elm.matches(selector)) {
-        const cleanup = fn(elm)
-        if (typeof cleanup === "function") {
-          elm.__cleanup ??= {}
-          elm.__cleanup[selector] = cleanup
-        }
-        elm.__applied ??= {}
-        elm.__applied[selector] = true
-      }
-    }
+  extendsHtmlProto()
+  switch (document.readyState) {
+    case "complete":
+    case "interactive":
+      initJSS(instructions, root)
+      break
+    case "loading":
+      ael(window, "DOMContentLoaded", () => initJSS(instructions, root))
+      jssfn = newInstructions => Object.assign(instructions, newInstructions)
+      break
   }
-  ael(window, "load", () => {
-    extendsHtmlProto()
-    domTraversal(applyInstructions)
-    const observer = new MutationObserver(mutationList => {
-      mutationList.forEach(mutation => {
-        switch (mutation.type) {
-          case "childList":
-            ;[...mutation.addedNodes]
-              .filter(node => node.nodeType === 1)
-              .forEach(elm => domTraversal(applyInstructions, elm as XElement))
-            ;[...mutation.removedNodes]
-              .filter(node => node.nodeType === 1)
-              .forEach(elm => domTraversal(clean, elm as XElement))
-            break
-          case "attributes":
-            const elm = mutation.target as XElement
-            elm.__applied &&
-              Object.keys(elm.__applied)
-                .filter(selector => !elm.matches(selector))
-                .forEach(selector => {
-                  elm.__cleanup?.[selector]?.()
-                  delete elm.__applied[selector]
-                })
-            applyInstructions(elm)
-            break
-        }
-      })
-    })
-    observer.observe(root || document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
+}
+export const jss: typeof jssfn = (...args) => jssfn(...args)
+function initJSS(instructions: Instructions, root: HTMLElement) {
+  setUpJSS(instructions, root)
+  jssfn = newInstructions => {
+    domTraversal(e => applyInstructionsToElm(newInstructions, e))
+    Object.assign(instructions, newInstructions)
+  }
+}
+function setUpJSS(instructions: Instructions, root: HTMLElement) {
+  qsa("template").forEach(defineTemplates)
+  domTraversal(e => applyInstructionsToElm(instructions, e))
+  const observer = new MutationObserver(mutationList => {
+    mutationList.forEach(mutation => {
+      switch (mutation.type) {
+        case "childList":
+          ;[...mutation.addedNodes]
+            .filter(node => node.nodeType === 1)
+            .forEach(elm =>
+              domTraversal(
+                e => applyInstructionsToElm(instructions, e),
+                elm as XElement
+              )
+            )
+          ;[...mutation.removedNodes]
+            .filter(node => node.nodeType === 1)
+            .forEach(elm => domTraversal(clean, elm as XElement))
+          break
+        case "attributes":
+          const elm = mutation.target as XElement
+          elm.__applied &&
+            Object.keys(elm.__applied)
+              .filter(selector => !elm.matches(selector))
+              .forEach(selector => {
+                elm.__cleanup?.[selector]?.()
+                delete elm.__applied[selector]
+              })
+          applyInstructionsToElm(instructions, elm)
+          break
+      }
     })
   })
-  jss = newInstructions => {
-    domTraversal(applyInstructions)
-    instructions = { ...instructions, ...newInstructions }
+  observer.observe(root || document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+  })
+}
+function applyInstructionsToElm(instructions: Instructions, elm: XElement) {
+  for (const selector in instructions) {
+    const fn = instructions[selector]
+    if (!elm.__applied?.[selector] && elm.matches(selector)) {
+      const cleanup = fn(elm)
+      if (typeof cleanup === "function") {
+        elm.__cleanup ??= {}
+        elm.__cleanup[selector] = cleanup
+      }
+      elm.__applied ??= {}
+      elm.__applied[selector] = true
+    }
   }
 }
 function extendsHtmlProto() {
