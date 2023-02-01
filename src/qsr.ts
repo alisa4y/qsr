@@ -3,9 +3,9 @@ import { Fn, XElement } from "./types"
 import { defineTemplates } from "./defaultInstructions"
 import { getLiftProxy, setHtmlElement } from "./ElementProxy"
 
-// TODO: add pseudo selector like :click support for jss
+// TODO: add pseudo selector like :click support for qsr
 type Instructions = Record<string, (elm: XElement) => void | Fn>
-let jssfn = (
+let qsrfn = (
   instructions: Instructions = {},
   root: HTMLElement = document.body
 ) => {
@@ -13,23 +13,23 @@ let jssfn = (
   switch (document.readyState) {
     case "complete":
     case "interactive":
-      initJSS(instructions, root)
+      initQsr(instructions, root)
       break
     case "loading":
-      ael(window, "DOMContentLoaded", () => initJSS(instructions, root))
-      jssfn = newInstructions => Object.assign(instructions, newInstructions)
+      ael(window, "DOMContentLoaded", () => initQsr(instructions, root))
+      qsrfn = newInstructions => Object.assign(instructions, newInstructions)
       break
   }
 }
-export const jss: typeof jssfn = (...args) => jssfn(...args)
-function initJSS(instructions: Instructions, root: HTMLElement) {
-  setUpJSS(instructions, root)
-  jssfn = newInstructions => {
+export const qsr: typeof qsrfn = (...args) => qsrfn(...args)
+function initQsr(instructions: Instructions, root: HTMLElement) {
+  setUpQsr(instructions, root)
+  qsrfn = newInstructions => {
     domTraversal(e => applyInstructionsToElm(newInstructions, e))
     Object.assign(instructions, newInstructions)
   }
 }
-function setUpJSS(instructions: Instructions, root: HTMLElement) {
+function setUpQsr(instructions: Instructions, root: HTMLElement) {
   qsa("template").forEach(defineTemplates)
   domTraversal(e => applyInstructionsToElm(instructions, e))
   const observer = new MutationObserver(mutationList => {

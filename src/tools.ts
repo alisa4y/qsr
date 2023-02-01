@@ -1,22 +1,18 @@
 import { XElement } from "./types"
+import { cache } from "flowco"
 
 type ScopeElement = XElement | HTMLElement | Document
-export function qs(selector: string, elm: ScopeElement = document) {
+export const qs = cache((selector: string, elm: ScopeElement = document) => {
   return elm.querySelector(selector)
-}
+})
 export function qsa(selector: string, elm: ScopeElement = document) {
   return [...elm.querySelectorAll(selector)]
 }
 export function mqs(...queries: [...string[], ScopeElement]) {
   const elm = queries.pop() as XElement
-  const result: XElement[] = []
-  ;(queries as string[]).map(q => {})
-  domTraversal(element => {
-    ;(queries as string[]).map((q, index) => {
-      if (element.matches(q)) result[index] = element
-    })
-  }, elm)
-  return result
+  return (queries as string[])
+    .map(q => qs(q, elm))
+    .filter(elm => elm !== null) as XElement[]
 }
 export function ma(...names: [...string[], ScopeElement]) {
   const elm = names.pop() as XElement

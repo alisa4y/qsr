@@ -1,8 +1,7 @@
-# jss
+# qsr
 
-a powerful tool to easily evaluate data from or to html
-
-# jss behaves as css
+a powerful tool to control and evaluate data of view (html elements)
+it's syntax looks like css and beha
 
 # eval property
 

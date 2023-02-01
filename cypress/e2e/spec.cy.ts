@@ -1,9 +1,9 @@
 import { XElement } from "../../src/types"
-describe("jss", () => {
+describe("qsr", () => {
   beforeEach(() => {
     cy.visit("localhost:3000")
   })
-  it("binding input to some element", () => {
+  it("can set rules like css", () => {
     const inp = cy.get('input[data-key="name"]')
     const inpEcho = cy.get('span[data-key="name"]')
     inp.type("hello")
@@ -226,7 +226,7 @@ describe("attribute data-item-data", () => {
       ) as any as XElement[]
       counterForm.eval = { count: 11 }
       cy.get("form").first().find("[data-item-add]").click()
-      cy.get("ul[data-item] > div span").contains(11)
+      cy.get("ul[data-item] > li span").contains(11)
       userForm.eval = users2[0]
       cy.get("form").eq(1).find("[data-item-add]").click()
       cy.get("table > tbody[data-item] > tr > td:nth-child(1)")

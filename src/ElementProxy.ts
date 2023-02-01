@@ -11,14 +11,7 @@ function lift(elm: XElement, data = {}) {
     data = branch.split(".").reduce((o: any, k: string) => (o[k] = {}), data)
   }
   if (key) {
-    if (key === "__uuid") {
-      Object.defineProperty(data, "__uuid", {
-        enumerable: false,
-        configurable: false,
-        get: () => elm.textContent,
-        set: v => (elm.textContent = v),
-      })
-    } else if (item) {
+    if (item) {
       const arrayEval = createArrayEval(elm)
       definePropertyDescriptor(
         data,
@@ -127,13 +120,6 @@ export class DataSetter {
     const cl = t.children.length;
     for (let i = 0; i < cl; i++) w.appendChild(t.children[0]);
     w.__set = ${templateName}.__setter.bind(w);
-
-    const uuid = document.createElement("div")
-    uuid.setAttribute("style", "display: none")
-    uuid.setAttribute("data-key", "__uuid")
-    uuid.textContent = window.__uuid++
-    w.appendChild(uuid)
-
     ${elmName}.appendChild(w);
   }\n
   {
@@ -307,20 +293,11 @@ function createArrayEval(elm: XElement) {
     },
   })
 }
-;(window as any).__uuid = 0
 function createItem(template: HTMLTemplateElement, wrapper: string) {
   const w = document.createElement(wrapper) as unknown as XElement
   const t = template.content.cloneNode(true) as HTMLElement
   const childrenLength = t.children.length
   for (let i = 0; i < childrenLength; i++) w.appendChild(t.children[0])
-  w.appendChild(createUuidElement())
   w.__set = (template as any).__setter.bind(w)
   return w
-}
-export function createUuidElement() {
-  const uuid = document.createElement("div")
-  uuid.setAttribute("style", "display: none")
-  uuid.setAttribute("data-key", "__uuid")
-  uuid.textContent = ((window as any).__uuid++).toString()
-  return uuid
 }

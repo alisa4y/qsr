@@ -1,6 +1,6 @@
-import { ael, jss, qs } from "../../dist/index.js"
+import { ael, qsr, qs } from "../../dist/index.js"
 
-jss({
+qsr({
   ".green": elm => {
     elm.style.background = "green"
   },

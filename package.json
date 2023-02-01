@@ -1,5 +1,5 @@
 {
-  "name": "jss",
+  "name": "qs-rule",
   "version": "0.0.1",
   "description": "",
   "main": "./dist/index.js",
@@ -22,6 +22,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/alisa4y/jss.git"
+    "url": "https://github.com/alisa4y/qsr.git"
   }
 }

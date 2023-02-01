@@ -1,17 +1,14 @@
 import { getRandomInt } from "flowco"
 import {
-  jss,
+  qsr,
   ael,
   qs,
   findAncestors,
   findNearestAncestorSibling,
 } from "../../dist/index.js"
 
-let list
-window.addEventListener("load", () => {
-  list = qs("ul[data-item]")
-})
-jss({
+const listS = "ul[data-item]"
+qsr({
   ".info": elm => {
     ael(qs('input[data-key="name"]', elm), "keyup", e => {
       elm.eval.name = elm.eval.input.name
@@ -24,20 +21,20 @@ jss({
   },
   "#randomSetter": elm => {
     ael(elm, "click", () => {
-      list.eval = [...list.children].map(() => ({
+      qs(listS).eval = [...qs(listS).children].map(() => ({
         count: getRandomInt(0, 100),
       }))
     })
   },
   'span[data-key="sum"]': elm => {
     const obs = new MutationObserver(() => {
-      elm.eval.sum = list.eval.reduce((acc, { count }) => count + acc, 0)
+      elm.eval.sum = qs(listS).eval.reduce((acc, { count }) => count + acc, 0)
     })
-    obs.observe(list, { subtree: true, childList: true })
+    obs.observe(qs(listS), { subtree: true, childList: true })
   },
   "#add2": elm => {
     ael(elm, "click", () => {
-      list.eval.push({ count: 7 })
+      qs(listS).eval.push({ count: 7 })
     })
   },
   "#users": elm => {
@@ -62,11 +59,11 @@ jss({
     })
   },
   "[data-item-remove]": elm => {
-    const [owner, child] = findAncestors("[data-item]", elm).reverse()
+    const child = findAncestors("[data-item]", elm).at(-2)
     ael(elm, "click", e => child.remove())
   },
   "tbody [data-item-edit]": elm => {
-    const [list, child] = findAncestors("[data-item]", elm).reverse()
+    const [child, list] = findAncestors("[data-item]", elm).slice(-2)
     const form = findNearestAncestorSibling("form:has([data-item-edit])", list)
     const formSubmit = qs("[data-item-edit]", form)
     ael(elm, "click", e => {
