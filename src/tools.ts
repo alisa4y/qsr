@@ -1,9 +1,9 @@
 import { XElement } from "./types"
-import { cache } from "flowco"
+import { cache } from "vaco"
 
 type ScopeElement = XElement | HTMLElement | Document
 export const qs = cache((selector: string, elm: ScopeElement = document) => {
-  return elm.querySelector(selector)
+  return elm.querySelector(selector) as XElement
 })
 export function qsa(selector: string, elm: ScopeElement = document) {
   return [...elm.querySelectorAll(selector)]

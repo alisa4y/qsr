@@ -1,5 +1,5 @@
 import { Fn, XElement } from "./types"
-import { isInteger, ox } from "flowco"
+import { isInteger, ox, cache } from "vaco"
 
 export function getLiftProxy(elm: XElement) {
   if (elm.dataset.item !== undefined) return createArrayEval(elm)
@@ -189,6 +189,9 @@ export function setHtmlElement(elm: XElement, v: any) {
 }
 const copyX = (o: XElement) => JSON.parse(JSON.stringify(o.eval))
 const ArProto = Array.prototype
+const genKeys = cache((length: number) => {
+  return ["length", ...Array(length).keys()].map(n => n.toString())
+})
 function createArrayEval(elm: XElement) {
   const wrapper = getWrapper(elm.tagName, elm.dataset.wrapper)
   const template = document.getElementById(
@@ -290,6 +293,9 @@ function createArrayEval(elm: XElement) {
             [...elm.children].map((child: XElement) => child.eval) as any
           )[p]
       }
+    },
+    ownKeys(t) {
+      return genKeys(elm.children.length)
     },
   })
 }

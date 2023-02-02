@@ -1,6 +1,6 @@
 {
   "name": "qs-rule",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -12,9 +12,6 @@
   },
   "author": "ali safari",
   "license": "MIT",
-  "dependencies": {
-    "flowco": "file:../js-logic"
-  },
   "devDependencies": {
     "cypress": "^11.1.0",
     "server": "file:../server",
@@ -23,5 +20,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/alisa4y/qsr.git"
+  },
+  "dependencies": {
+    "vaco": "^0.0.7"
   }
 }
