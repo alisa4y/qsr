@@ -1,5 +1,6 @@
 import { Fn, XElement } from "./types"
 import { isInteger, ox, cache } from "vaco"
+import { aim, compose } from "bafu"
 
 export function getLiftProxy(elm: XElement) {
   if (elm.dataset.item !== undefined) return createArrayEval(elm)
@@ -110,12 +111,13 @@ export class DataSetter {
     const elmName = this.elmArgs.push(elm)
     const templateName = this.templateArgs.push(document.getElementById(item))
     const data = this.dataVars.at(-1)
-    const wrapper = getWrapper(elm.tagName, elm.dataset.wrapper)
+    const { wrapper, wrapperData } = getWrapperData(elm)
     this.body += `
     if(!Array.isArray(${data})) throw new Error(${data}+" is not an array");
   while(${elmName}.children.length > ${data}.length){${elmName}.removeChild(${elmName}.lastChild);}\n
   while(${elmName}.children.length < ${data}.length){
     const w = document.createElement("${wrapper}");
+    ${wrapperData ? setAttributesScript("w", wrapperData) : ""}
     const t = ${templateName}.content.cloneNode(true);
     const cl = t.children.length;
     for (let i = 0; i < cl; i++) w.appendChild(t.children[0]);
@@ -135,7 +137,7 @@ export class DataSetter {
     this.childDepth.pop()
   }
 }
-function getWrapper(tagname: string, wrapper = "div") {
+function getWrapper(tagname: string) {
   switch (tagname) {
     case "TBODY":
       return "tr"
@@ -143,7 +145,7 @@ function getWrapper(tagname: string, wrapper = "div") {
     case "OL":
       return "li"
     default:
-      return wrapper
+      return "div"
   }
 }
 export function buildDataSetter(elm: Element, ds = new DataSetter()) {
@@ -193,7 +195,13 @@ const genKeys = cache((length: number) => {
   return ["length", ...Array(length).keys()].map(n => n.toString())
 })
 function createArrayEval(elm: XElement) {
-  const wrapper = getWrapper(elm.tagName, elm.dataset.wrapper)
+  const { wrapper, wrapperData } = getWrapperData(elm)
+  const makeItem = wrapperData
+    ? compose(
+        aim(setWrapperAttributes, wrapperData) as (a: XElement) => XElement,
+        createItem
+      )
+    : createItem
   const template = document.getElementById(
     elm.dataset.item
   ) as HTMLTemplateElement
@@ -212,7 +220,7 @@ function createArrayEval(elm: XElement) {
         case "push":
           return (...v: any[]) => {
             v.forEach(value => {
-              const item = createItem(template, wrapper)
+              const item = makeItem(template, wrapper)
               elm.appendChild(item)
               item.eval = value
             })
@@ -230,7 +238,7 @@ function createArrayEval(elm: XElement) {
         case "unshift":
           return (...v: any[]) => {
             v.forEach(value => {
-              const item = createItem(template, wrapper)
+              const item = makeItem(template, wrapper)
               elm.insertBefore(item, elm.firstChild)
               item.eval = value
             })
@@ -268,12 +276,12 @@ function createArrayEval(elm: XElement) {
                 const startElm =
                   elm.children[startIndex] || (elm.lastChild as Element)
                 for (let i = startIndex; i < newElmEnd; i++) {
-                  const item = createItem(template, wrapper)
+                  const item = makeItem(template, wrapper)
                   startElm.insertAdjacentElement("afterend", item)
                 }
               } else {
                 for (let i = startIndex; i < newElmEnd; i++)
-                  elm.appendChild(createItem(template, wrapper))
+                  elm.appendChild(makeItem(template, wrapper))
               }
             }
             v.forEach((value, index) => {
@@ -306,4 +314,63 @@ function createItem(template: HTMLTemplateElement, wrapper: string) {
   for (let i = 0; i < childrenLength; i++) w.appendChild(t.children[0])
   w.__set = (template as any).__setter.bind(w)
   return w
+}
+function setWrapperAttributes(
+  wElm: XElement,
+  { id, classes, attributes }: WrapperData
+) {
+  if (id) wElm.setAttribute("id", id)
+  if (classes) wElm.setAttribute("class", classes)
+  if (attributes)
+    attributes.forEach(([name, value]) => wElm.setAttribute(name, value))
+  return wElm
+}
+type WrapperData = {
+  tag: string
+  id: string | null
+  classes: string | null
+  attributes: string[][] | null
+}
+function getWrapperData(elm: XElement) {
+  let wrapper
+  let wrapperData
+  const { wrapper: w } = elm.dataset
+  if (w) {
+    wrapperData = extractInfo(w)
+    wrapper = wrapperData.tag
+  } else {
+    wrapper = getWrapper(elm.tagName)
+  }
+  return { wrapper, wrapperData }
+}
+function extractInfo(cssSelector: string): WrapperData {
+  const tag = cssSelector.match(/^\w+/)[0]
+  const id = cssSelector.match(/#(\w+)/)?.[1] || null
+  const classes =
+    cssSelector
+      .match(/\.\w+/g)
+      ?.map(v => v.slice(1)) // removing . (dot)
+      .join(" ") || null
+  const attributes =
+    cssSelector
+      .match(/\[.+\]/g)
+      ?.map(v => v.slice(1, -1).replace("'", '"').split("=")) || // removing brackets and replacing ' with "
+    null
+
+  return { tag, id, classes, attributes }
+}
+function setAttributesScript(
+  elmName: string,
+  { id, classes, attributes }: WrapperData
+) {
+  return `${setAttributeScript(elmName, "id", id)}
+${setAttributeScript(elmName, "class", classes)}
+${
+  attributes
+    ?.map(([name, value]) => setAttributeScript(elmName, name, value || "true"))
+    .join("\n") || ""
+}`
+}
+function setAttributeScript(elmName: string, name: string, value: string) {
+  return value ? `${elmName}.setAttribute("${name}", "${value}");` : ""
 }

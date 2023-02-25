@@ -18,14 +18,16 @@
       </div>
     </div>
     <div class="list">
-      <ul data-key="counters" data-item="counter"></ul>
+      <ul
+        data-key="counters"
+        data-item="counter"
+        data-wrapper="li.counterComponent"
+      ></ul>
       <template id="counter">
-        <div class="counterComponent">
-          <button>-</button>
-          <span type="number" data-key="count">0</span>
-          <button>+</button>
-          <button data-item-remove>X</button>
-        </div>
+        <button>-</button>
+        <span type="number" data-key="count">0</span>
+        <button>+</button>
+        <button data-item-remove>X</button>
       </template>
       <button data-item-add>add</button>
       <button id="add2">programitically add</button>

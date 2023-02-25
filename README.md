@@ -31,4 +31,5 @@ and default will be "div" and you can give wrapper with attribute "data-wrapper"
 
 # data-wrapper
 
-you can pass the name of wrapper to be used in creation of new element for the element with data-item attribute
+you can pass the name of wrapper to be used in creation of new element for the element with `data-item` attribute
+you can pass id , classes and custom attributes like css selector e.g. `div.bigBtn` or `div[data-branch="address"]`
