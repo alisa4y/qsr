@@ -1,37 +1,70 @@
 import { ael, domTraversal, qsa } from "./tools"
 import { Fn, XElement } from "./types"
-import { defineTemplates } from "./defaultInstructions"
+import { defineTemplates } from "./configureTemplates"
 import { getLiftProxy, setHtmlElement } from "./ElementProxy"
 
 // TODO: add pseudo selector like :click support for qsr
+type Options = {
+  watch?: boolean
+}
+export function qsh(
+  ins: Instructions,
+  root: XElement | HTMLElement,
+  { watch }: Options = {}
+) {
+  switch (document.readyState) {
+    case "complete":
+    case "interactive":
+      domTraversal(e => applyInstructionsToElm(ins, e))
+      break
+    case "loading":
+      ael(window, "DOMContentLoaded", () =>
+        domTraversal(e => applyInstructionsToElm(ins, e))
+      )
+      break
+  }
+  if (watch) observe(ins, root)
+}
 type Instructions = Record<string, (elm: XElement) => void | Fn>
-let qsrfn = (
-  instructions: Instructions = {},
-  root: HTMLElement = document.body
-) => {
+function handleStartQs(ins: Instructions) {
+  switch (document.readyState) {
+    case "complete":
+    case "interactive":
+      initQsr(ins)
+      break
+    case "loading":
+      ael(window, "DOMContentLoaded", () => initQsr(ins))
+      qsrfn = newInstructions => Object.assign(ins, newInstructions)
+      break
+  }
+}
+let qsrfn = (instructions: Instructions = {}) => {
   extendsHtmlProto()
   switch (document.readyState) {
     case "complete":
     case "interactive":
-      initQsr(instructions, root)
+      initQsr(instructions)
       break
     case "loading":
-      ael(window, "DOMContentLoaded", () => initQsr(instructions, root))
+      ael(window, "DOMContentLoaded", () => initQsr(instructions))
       qsrfn = newInstructions => Object.assign(instructions, newInstructions)
       break
   }
 }
 export const qsr: typeof qsrfn = (...args) => qsrfn(...args)
-function initQsr(instructions: Instructions, root: HTMLElement) {
-  setUpQsr(instructions, root)
+function initQsr(instructions: Instructions) {
+  setUpQsr(instructions)
   qsrfn = newInstructions => {
     domTraversal(e => applyInstructionsToElm(newInstructions, e))
     Object.assign(instructions, newInstructions)
   }
 }
-function setUpQsr(instructions: Instructions, root: HTMLElement) {
+function setUpQsr(instructions: Instructions) {
   qsa("template").forEach(defineTemplates)
   domTraversal(e => applyInstructionsToElm(instructions, e))
+  observe(instructions, document.body)
+}
+function observe(ins: Instructions, elm: XElement | HTMLElement) {
   const observer = new MutationObserver(mutationList => {
     mutationList.forEach(mutation => {
       switch (mutation.type) {
@@ -39,10 +72,7 @@ function setUpQsr(instructions: Instructions, root: HTMLElement) {
           ;[...mutation.addedNodes]
             .filter(node => node.nodeType === 1)
             .forEach(elm =>
-              domTraversal(
-                e => applyInstructionsToElm(instructions, e),
-                elm as XElement
-              )
+              domTraversal(e => applyInstructionsToElm(ins, e), elm as XElement)
             )
           ;[...mutation.removedNodes]
             .filter(node => node.nodeType === 1)
@@ -57,12 +87,12 @@ function setUpQsr(instructions: Instructions, root: HTMLElement) {
                 elm.__cleanup?.[selector]?.()
                 delete elm.__applied[selector]
               })
-          applyInstructionsToElm(instructions, elm)
+          applyInstructionsToElm(ins, elm)
           break
       }
     })
   })
-  observer.observe(root || document.body, {
+  observer.observe(elm, {
     childList: true,
     subtree: true,
     attributes: true,

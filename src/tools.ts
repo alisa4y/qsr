@@ -2,6 +2,7 @@ import { XElement } from "./types"
 import { cache } from "vaco"
 
 type ScopeElement = XElement | HTMLElement | Document
+// TODO: make qs cacheable
 export const qs = cache((selector: string, elm: ScopeElement = document) => {
   return elm.querySelector(selector) as XElement
 })
@@ -10,9 +11,7 @@ export function qsa(selector: string, elm: ScopeElement = document) {
 }
 export function mqs(...queries: [...string[], ScopeElement]) {
   const elm = queries.pop() as XElement
-  return (queries as string[])
-    .map(q => qs(q, elm))
-    .filter(elm => elm !== null) as XElement[]
+  return (queries as string[]).map(q => qs(q, elm))
 }
 export function ma(...names: [...string[], ScopeElement]) {
   const elm = names.pop() as XElement
