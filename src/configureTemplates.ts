@@ -5,7 +5,7 @@ export function defineTemplates(template: XElement & HTMLTemplateElement) {
   if (!template.id) return
   const dataSetter = new DataSetter()
   const setter = buildDataSetter(
-    template.content as unknown as Element,
+    template.content.firstElementChild as unknown as Element,
     dataSetter
   )
   ;(template as any).__setter = function (data: any) {

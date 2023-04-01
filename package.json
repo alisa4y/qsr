@@ -1,6 +1,6 @@
 {
   "name": "qs-rule",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "devDependencies": {
     "cypress": "^11.1.0",
-    "server": "file:../server",
+    "ninja-server": "^0.0.5",
     "typescript": "^4.9.3"
   },
   "repository": {

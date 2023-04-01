@@ -28,8 +28,3 @@ the value of this attribute must be the id name of a template
 the content of template will be wrapped in element which is derived from the parent element
 for example the "tbody" parent will generate a "tr" element as wrapper and for lists ("ul", "ol") it will be "li"
 and default will be "div" and you can give wrapper with attribute "data-wrapper"
-
-# data-wrapper
-
-you can pass the name of wrapper to be used in creation of new element for the element with `data-item` attribute
-you can pass id , classes and custom attributes like css selector e.g. `div.bigBtn` or `div[data-branch="address"]`
