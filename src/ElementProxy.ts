@@ -24,7 +24,10 @@ function lift(elm: XElement, data = {}) {
       const prop =
         (elm as unknown as HTMLInputElement).value === undefined
           ? "textContent"
-          : "value"
+          : (elm as unknown as HTMLInputElement).checked === undefined
+          ? "value"
+          : "checked"
+
       let getter
       if (elm.getAttribute("type") === "number")
         getter = () => parseInt((elm as any)[prop])
@@ -103,7 +106,9 @@ export class DataSetter {
     const prop =
       (elm as unknown as HTMLInputElement).value === undefined
         ? "textContent"
-        : "value"
+        : (elm as unknown as HTMLInputElement).checked === undefined
+        ? "value"
+        : "checked"
     const elmName = this.elmArgs.push(elm)
     this.body += `${elmName}.${prop}=${this.dataVars.at(-1)};\n`
   }
