@@ -126,10 +126,7 @@ function findNearestSibling(selector: string, elm: Element) {
   }
   return undefined
 }
-export function domTraversal(
-  callback: (e: XElement) => void,
-  elm: XElement = document.body as unknown as XElement
-) {
+export function domTraversal(callback: (e: XElement) => void, elm: XElement) {
   callback(elm)
   for (let child of elm.children) {
     domTraversal(callback, child as XElement)

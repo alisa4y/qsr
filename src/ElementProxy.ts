@@ -1,6 +1,5 @@
 import { Fn, XElement } from "./types"
 import { isInteger, ox, cache } from "vaco"
-import { aim, compose } from "bafu"
 
 export function getLiftProxy(elm: XElement) {
   if (elm.dataset.item !== undefined) return createArrayEval(elm)
@@ -136,17 +135,6 @@ export class DataSetter {
   }
   outChild() {
     this.childDepth.pop()
-  }
-}
-function getWrapper(tagname: string) {
-  switch (tagname) {
-    case "TBODY":
-      return "tr"
-    case "UL":
-    case "OL":
-      return "li"
-    default:
-      return "div"
   }
 }
 export function buildDataSetter(elm: Element, ds = new DataSetter()) {
