@@ -1,11 +1,10 @@
 import { XElement } from "./types"
-import { cache } from "vaco"
 
 type ScopeElement = XElement | HTMLElement | Document
-// TODO: make qs cacheable
-export const qs = cache((selector: string, elm: ScopeElement = document) => {
+
+export const qs = (selector: string, elm: ScopeElement = document) => {
   return elm.querySelector(selector) as XElement
-})
+}
 export function qsa(selector: string, elm: ScopeElement = document) {
   return [...elm.querySelectorAll(selector)]
 }
@@ -92,18 +91,15 @@ export function onClickAway(elm: Element, callback: () => void) {
     callback()
   })
 }
-export function findAncestors(selector: string, elm: Element) {
-  const ancestors: XElement[] = []
+export function findAncestor(
+  selector: string,
+  elm: Element
+): XElement | undefined {
   elm = elm.parentElement
-  while (elm && !elm.matches(selector)) {
-    ancestors.push(elm as XElement)
+  while (elm) {
+    if (elm.matches(selector)) return elm as XElement
     elm = elm.parentElement
   }
-  if (elm && elm.matches(selector)) {
-    ancestors.push(elm as XElement)
-    return ancestors
-  }
-  return []
 }
 export function findNearestAncestorSibling(selector: string, elm: Element) {
   let found: XElement
@@ -114,7 +110,7 @@ export function findNearestAncestorSibling(selector: string, elm: Element) {
   }
   return undefined
 }
-function findNearestSibling(selector: string, elm: Element) {
+export function findNearestSibling(selector: string, elm: Element) {
   let pre = elm.previousElementSibling
   let next = elm.nextElementSibling
   while (pre || next) {

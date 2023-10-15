@@ -30,7 +30,7 @@ export function qsh(
 }
 type Instructions = Record<string, (elm: XElement) => void | Fn>
 
-let qsrfn = (instructions: Instructions = {}) => {
+let qsrfn = (instructions: Instructions) => {
   switch (document.readyState) {
     case "complete":
     case "interactive":
