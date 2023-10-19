@@ -87,7 +87,7 @@ export const loadScript = (src: string) =>
   })
 
 export const onClickAway = (function () {
-  const listeners: Set<Elm_Cb> = new Set()
+  const listeners: Set<OnClickAwayData> = new Set()
   ael(window, "click", e => {
     const { target } = e
     listeners.forEach(({ element: elm, callback: fn }) => {
@@ -96,8 +96,8 @@ export const onClickAway = (function () {
     })
   })
   return {
-    subscribe: (v: Elm_Cb) => listeners.add(v),
-    unSubscribe: (v: Elm_Cb) => listeners.delete(v),
+    subscribe: (v: OnClickAwayData) => listeners.add(v),
+    unSubscribe: (v: OnClickAwayData) => listeners.delete(v),
   }
 })()
 export function findAncestor(
@@ -139,5 +139,5 @@ export function domTraversal(callback: (e: XElement) => void, elm: XElement) {
 }
 
 // ----------------------------------  types  ----------------------------------
-export type Elm_Cb = { element: Node; callback: Fn }
+export type OnClickAwayData = { element: Node; callback: Fn }
 type Fn = (...args: any[]) => any
