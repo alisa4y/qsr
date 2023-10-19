@@ -85,12 +85,21 @@ export const loadScript = (src: string) =>
     script.async = true
     script.src = src
   })
-export function onClickAway(elm: Element, callback: () => void) {
+
+export const onClickAway = (function () {
+  const listeners: Set<Elm_Cb> = new Set()
   ael(window, "click", e => {
-    if (elm.contains(e.target as Node)) return
-    callback()
+    const { target } = e
+    listeners.forEach(({ element: elm, callback: fn }) => {
+      if (elm.contains(target as Node)) return
+      fn()
+    })
   })
-}
+  return {
+    subscribe: (v: Elm_Cb) => listeners.add(v),
+    unSubscribe: (v: Elm_Cb) => listeners.delete(v),
+  }
+})()
 export function findAncestor(
   selector: string,
   elm: Element
@@ -128,3 +137,7 @@ export function domTraversal(callback: (e: XElement) => void, elm: XElement) {
     domTraversal(callback, child as XElement)
   }
 }
+
+// ----------------------------------  types  ----------------------------------
+export type Elm_Cb = { element: Node; callback: Fn }
+type Fn = (...args: any[]) => any
