@@ -20,16 +20,10 @@ function lift(elm: XElement, data = {}) {
         (v: any) => setHtmlElement(elm, v)
       )
     } else {
-      const prop =
-        (elm as unknown as HTMLInputElement).value === undefined
-          ? "textContent"
-          : (elm as unknown as HTMLInputElement).checked === undefined
-          ? "value"
-          : "checked"
-
+      const elmType = elm.getAttribute("type")
+      const prop = getValueProp(elm as any)
       let getter
-      if (elm.getAttribute("type") === "number")
-        getter = () => parseInt((elm as any)[prop])
+      if (elmType === "number") getter = () => parseInt((elm as any)[prop])
       else getter = () => (elm as any)[prop]
       definePropertyDescriptor(data, key, getter, (v: any) =>
         setHtmlElement(elm as any, v)
@@ -39,6 +33,13 @@ function lift(elm: XElement, data = {}) {
   }
   for (const child of elm.children) lift(child as XElement, data)
   return data
+}
+function getValueProp(elm: XElement): string {
+  return (elm as any).value === undefined
+    ? "textContent"
+    : elm.getAttribute("type") === "checkbox"
+    ? "checked"
+    : "value"
 }
 function definePropertyDescriptor(obj: object, key: string, get: Fn, set: Fn) {
   Object.defineProperty(obj, key, {
@@ -102,12 +103,7 @@ export class DataSetter {
     this.body += `let ${newDataVar}=${dataVar}.${branch}\n`
   }
   setContent(elm: XElement) {
-    const prop =
-      (elm as unknown as HTMLInputElement).value === undefined
-        ? "textContent"
-        : (elm as unknown as HTMLInputElement).checked === undefined
-        ? "value"
-        : "checked"
+    const prop = getValueProp(elm)
     const elmName = this.elmArgs.push(elm)
     this.body += `${elmName}.${prop}=${this.dataVars.at(-1)};\n`
   }

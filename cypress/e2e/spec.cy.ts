@@ -1,8 +1,41 @@
 import { XElement } from "../../src/types"
-describe("qsr", () => {
+describe("qsr eval property", () => {
   beforeEach(() => {
     cy.visit("localhost:3000")
   })
+  it("on html elements with data-key it works like this", () => {
+    cy.window().then(win => {
+      // testing if injection works
+      const script = `document.querySelector('.info input').value = 'hi'`
+      win.eval(script)
+      const inp = cy.get('input[data-key="name"]')
+      inp.should("have.value", "hi").then(() => {
+        win.eval(`document.querySelector('.info input').eval.name = "test 1"`)
+        inp.should("have.value", "test 1").then(() => {
+          win.eval(`document.querySelector('.info input').eval = "test 2"`)
+          inp.should("have.value", "test 2")
+        })
+      })
+    })
+  })
+  // it.only("using eval on parent with child contains data-key", () => {
+  //   cy.window().then(win => {
+  //     const data = { name: "ali", input: { name: "safari" } }
+  //     const script = `document.querySelector('.info').eval = ${JSON.stringify(
+  //       data
+  //     )}`
+  //     win.eval(script)
+  //     const inp = cy.get(".info input")
+  //     const span = cy.get(".info span")
+  //     inp.should("have.value", "safari")
+  //     span.should("have.text", "ali").then(() => {
+  //       // inp.should("have.text", "test 1").then(() => {
+  //       //   win.eval(`document.querySelector('.info input').eval = "test 2"`)
+  //       //   inp.should("have.text", "test 2")
+  //       // })
+  //     })
+  //   })
+  // })
   it("can set rules like css", () => {
     const inp = cy.get('input[data-key="name"]')
     const inpEcho = cy.get('span[data-key="name"]')

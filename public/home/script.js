@@ -3,7 +3,7 @@ import {
   qsr,
   ael,
   qs,
-  findAncestors,
+  findAncestor,
   findNearestAncestorSibling,
 } from "../../dist/index.js"
 
@@ -48,30 +48,33 @@ qsr({
     })
   },
   "[data-item-add]": elm => {
-    const dataElm = findAncestors("[data-item-data]", elm).pop()
-    let child = elm
-    if (dataElm) child = dataElm
-    let list = findNearestAncestorSibling("[data-item]", child)
+    const form = findAncestor("[data-item-data]", elm)
+
+    let list = findNearestAncestorSibling("[data-item]", elm)
     if (!list) list = qs("table tbody")
     ael(elm, "click", e => {
       e.preventDefault()
-      list.eval.push(dataElm?.eval ?? { count: 0 })
+      list.eval.push(form?.eval ?? { count: 0 })
     })
   },
   "[data-item-remove]": elm => {
-    const child = findAncestors("[data-item]", elm).at(-2)
-    ael(elm, "click", e => child.remove())
+    ael(elm, "click", e => elm.parentElement.remove())
   },
   "tbody [data-item-edit]": elm => {
-    const [child, list] = findAncestors("[data-item]", elm).slice(-2)
-    const form = findNearestAncestorSibling("form:has([data-item-edit])", list)
-    const formSubmit = qs("[data-item-edit]", form)
+    const child = elm.parentElement.parentElement
+    const list = child.parentElement
+    const editForm = findNearestAncestorSibling(
+      "form:has([data-item-edit])",
+      list
+    )
+    const editBtn = qs("[data-item-edit]", editForm)
     ael(elm, "click", e => {
+      console.log("clikcing")
       e.preventDefault()
-      form.eval = child.eval
-      formSubmit.onclick = e => {
+      editForm.eval = child.eval
+      editBtn.onclick = e => {
         e.preventDefault()
-        child.eval = form.eval
+        child.eval = editForm.eval
       }
     })
   },

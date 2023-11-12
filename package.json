@@ -1,6 +1,6 @@
 {
   "name": "qs-rule",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,8 +13,8 @@
   "author": "ali safari",
   "license": "MIT",
   "devDependencies": {
-    "cypress": "^11.1.0",
-    "ninja-server": "^0.0.5",
+    "cypress": "^11.2.0",
+    "ninja-server": "file:../ninja server",
     "typescript": "^4.9.3"
   },
   "repository": {
