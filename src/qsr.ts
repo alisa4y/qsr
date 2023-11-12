@@ -112,6 +112,8 @@ function clean(elm: XElement) {
   if (elm.__cleanup) Object.values(elm.__cleanup).forEach(fn => fn())
 }
 function init(): void {
+  if (HTMLElement.prototype.hasOwnProperty("eval")) return
+
   Object.defineProperty(HTMLElement.prototype, "eval", {
     set(v) {
       setHtmlElement(this, v)
