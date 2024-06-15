@@ -104,11 +104,8 @@ export function findAncestor(
   selector: string,
   elm: Element
 ): XElement | undefined {
-  elm = elm.parentElement
-  while (elm) {
-    if (elm.matches(selector)) return elm as XElement
-    elm = elm.parentElement
-  }
+  while (!elm.matches(selector) && (elm = elm.parentElement));
+  return (elm as XElement) || undefined
 }
 export function findNearestAncestorSibling(selector: string, elm: Element) {
   let found: XElement
