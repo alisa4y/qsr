@@ -17,7 +17,7 @@ let qsrfn = (instructions: Record<string, Instruction["handler"]>) => {
     case "loading":
       ael(window, "DOMContentLoaded", () => initQsr(insArray))
       qsrfn = newInstructions =>
-        mergeInstructions(insArray, instructions2array(newInstructions))
+        mutateInstructions(insArray, instructions2array(newInstructions))
 
       break
   }
@@ -30,7 +30,7 @@ function initQsr(insArray: Instruction[]) {
 
   qsrfn = newInstructions => {
     domTraversal(e => applyInstructionsToElm(insArray, e), document.body as any)
-    mergeInstructions(insArray, instructions2array(newInstructions))
+    mutateInstructions(insArray, instructions2array(newInstructions))
   }
 }
 export function qsh(
@@ -112,16 +112,15 @@ function instructions2array(
 ): Instruction[] {
   return Object.keys(inss).map(key => ({ query: key, handler: inss[key] }))
 }
-function mergeInstructions(
-  inss1: Instruction[],
-  inss2: Instruction[]
-): Instruction[] {
-  return inss1.concat(
-    inss2.filter(
+function mutateInstructions(inss1: Instruction[], inss2: Instruction[]): void {
+  inss2
+    .filter(
       ({ query, handler }: Instruction) =>
         !inss1.some(({ query: q, handler: h }) => q === query && h === handler)
     )
-  )
+    .forEach(ins => {
+      inss1.push(ins)
+    })
 }
 // --------------------  types  --------------------
 type Options = {
