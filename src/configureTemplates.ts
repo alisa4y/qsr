@@ -1,7 +1,7 @@
 import { XElement } from "./types"
 import { DataSetter, buildDataSetter } from "./ElementProxy"
 
-export function defineTemplates(template: XElement & HTMLTemplateElement) {
+export function defineTemplates(template: Element & HTMLTemplateElement) {
   if (!template.id) return
   const dataSetter = new DataSetter()
   const setter = buildDataSetter(

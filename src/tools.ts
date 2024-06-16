@@ -1,7 +1,6 @@
 import { XElement } from "./types"
 
-type ScopeElement = XElement | HTMLElement | Document
-
+// --------------------  main exports  --------------------
 export const qs = (selector: string, elm: ScopeElement = document) => {
   return elm.querySelector(selector) as XElement
 }
@@ -104,7 +103,7 @@ export function findAncestor(
   selector: string,
   elm: Element
 ): XElement | undefined {
-  while (!elm.matches(selector) && (elm = elm.parentElement));
+  while (!elm.matches(selector) && (elm = elm.parentElement as any));
   return (elm as XElement) || undefined
 }
 export function findNearestAncestorSibling(selector: string, elm: Element) {
@@ -112,7 +111,7 @@ export function findNearestAncestorSibling(selector: string, elm: Element) {
   while (elm) {
     found = findNearestSibling(selector, elm) as XElement
     if (found) return found
-    elm = elm.parentElement
+    elm = elm.parentElement as any
   }
   return undefined
 }
@@ -138,3 +137,4 @@ export function domTraversal(callback: (e: XElement) => void, elm: XElement) {
 // ----------------------------------  types  ----------------------------------
 export type OnClickAwayData = { element: Node; callback: Fn }
 type Fn = (...args: any[]) => any
+type ScopeElement = XElement | HTMLElement | Document

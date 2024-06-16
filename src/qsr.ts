@@ -1,88 +1,87 @@
 import { ael, domTraversal, qsa } from "./tools"
-import { Fn, XElement } from "./types"
-import { defineTemplates } from "./configureTemplates"
-import { getLiftProxy, setHtmlElement } from "./ElementProxy"
+import { Instruction, XElement } from "./types"
+import { ox } from "vaco"
 
 // TODO: add pseudo selector like :click support for qsr
-type Options = {
-  watch?: boolean
-}
 
-init()
+// --------------------  query selector css format like  --------------------
+let qsrfn = (instructions: Record<string, Instruction["handler"]>) => {
+  const insArray = instructions2array(instructions)
 
-export function qsh(
-  ins: Instructions,
-  root: XElement | HTMLElement,
-  { watch }: Options = {}
-) {
   switch (document.readyState) {
     case "complete":
     case "interactive":
-      domTraversal(e => applyInstructionsToElm(ins, e), root as XElement)
-      break
-    case "loading":
-      ael(window, "DOMContentLoaded", () =>
-        domTraversal(e => applyInstructionsToElm(ins, e), root as XElement)
-      )
-      break
-  }
-  if (watch) observe(ins, root)
-}
-type Instructions = Record<string, (elm: XElement) => void | Fn>
+      initQsr(insArray)
 
-let qsrfn = (instructions: Instructions) => {
-  switch (document.readyState) {
-    case "complete":
-    case "interactive":
-      initQsr(instructions)
       break
     case "loading":
-      ael(window, "DOMContentLoaded", () => initQsr(instructions))
-      qsrfn = newInstructions => Object.assign(instructions, newInstructions)
+      ael(window, "DOMContentLoaded", () => initQsr(insArray))
+      qsrfn = newInstructions =>
+        mergeInstructions(insArray, instructions2array(newInstructions))
+
       break
   }
 }
 export const qsr: typeof qsrfn = (...args) => qsrfn(...args)
-function initQsr(instructions: Instructions) {
-  domTraversal(
-    e => applyInstructionsToElm(instructions, e),
-    document.body as any
-  )
-  observe(instructions, document.body)
+
+function initQsr(insArray: Instruction[]) {
+  domTraversal(e => applyInstructionsToElm(insArray, e), document.body as any)
+  observe(insArray, document.body)
 
   qsrfn = newInstructions => {
-    domTraversal(
-      e => applyInstructionsToElm(newInstructions, e),
-      document.body as any
-    )
-    Object.assign(instructions, newInstructions)
+    domTraversal(e => applyInstructionsToElm(insArray, e), document.body as any)
+    mergeInstructions(insArray, instructions2array(newInstructions))
   }
 }
+export function qsh(
+  ins: Record<string, Instruction["handler"]>,
+  root: XElement | HTMLElement,
+  { watch }: Options = {}
+) {
+  const insArray = instructions2array(ins)
 
-function observe(ins: Instructions, elm: XElement | HTMLElement) {
+  switch (document.readyState) {
+    case "complete":
+    case "interactive":
+      domTraversal(e => applyInstructionsToElm(insArray, e), root as XElement)
+      break
+    case "loading":
+      ael(window, "DOMContentLoaded", () =>
+        domTraversal(e => applyInstructionsToElm(insArray, e), root as XElement)
+      )
+      break
+  }
+
+  if (watch) observe(insArray, root)
+}
+
+// --------------------  helpers  --------------------
+function observe(ins: Instruction[], elm: XElement | HTMLElement) {
   const observer = new MutationObserver(mutationList => {
     mutationList.forEach(mutation => {
       switch (mutation.type) {
         case "childList":
-          ;[...mutation.addedNodes]
+          Array.from(mutation.addedNodes)
             .filter(node => node.nodeType === 1)
             .forEach(elm =>
               domTraversal(e => applyInstructionsToElm(ins, e), elm as XElement)
             )
-          ;[...mutation.removedNodes]
+          Array.from(mutation.removedNodes)
             .filter(node => node.nodeType === 1)
             .forEach(elm => domTraversal(clean, elm as XElement))
+
           break
+
         case "attributes":
           const elm = mutation.target as XElement
-          elm.__applied &&
-            Object.keys(elm.__applied)
-              .filter(selector => !elm.matches(selector))
-              .forEach(selector => {
-                elm.__cleanup?.[selector]?.()
-                delete elm.__applied[selector]
-              })
+
+          if (elm.__applied !== undefined)
+            Array.from(elm.__applied.entries())
+              .filter(([{ query }]) => !elm.matches(query))
+              .forEach(([, cleanup]) => cleanup())
+
           applyInstructionsToElm(ins, elm)
+
           break
       }
     })
@@ -93,45 +92,39 @@ function observe(ins: Instructions, elm: XElement | HTMLElement) {
     attributes: true,
   })
 }
-function applyInstructionsToElm(instructions: Instructions, elm: XElement) {
-  for (const selector in instructions) {
-    const fn = instructions[selector]
-    if (!elm.__applied?.[selector] && elm.matches(selector)) {
-      const cleanup = fn(elm)
-      if (typeof cleanup === "function") {
-        elm.__cleanup ??= {}
-        elm.__cleanup[selector] = cleanup
-      }
-      elm.__applied ??= {}
-      elm.__applied[selector] = true
-    }
-  }
-}
+function applyInstructionsToElm(instructions: Instruction[], elm: XElement) {
+  const applied: XElement["__applied"] = elm.__applied || new Map()
 
+  instructions
+    .filter(ins => !applied.has(ins) && elm.matches(ins.query))
+    .forEach(ins => {
+      applied.set(ins, ins.handler(elm) || ox)
+    })
+
+  if (applied.size > 0) elm.__applied = applied
+}
 function clean(elm: XElement) {
-  if (elm.__cleanup) Object.values(elm.__cleanup).forEach(fn => fn())
+  if (elm.__applied !== undefined)
+    Array.from(elm.__applied.values()).forEach(fn => fn())
 }
-function init(): void {
-  if (HTMLElement.prototype.hasOwnProperty("eval")) return
-
-  Object.defineProperty(HTMLElement.prototype, "eval", {
-    set(v) {
-      setHtmlElement(this, v)
-    },
-
-    get() {
-      return this.__get ?? (this.__get = getLiftProxy(this))
-    },
-  })
-
-  switch (document.readyState) {
-    case "complete":
-    case "interactive":
-      qsa("template").forEach(defineTemplates)
-      break
-    case "loading":
-      ael(window, "DOMContentLoaded", () =>
-        qsa("template").forEach(defineTemplates)
-      )
-  }
+function instructions2array(
+  inss: Record<string, Instruction["handler"]>
+): Instruction[] {
+  return Object.keys(inss).map(key => ({ query: key, handler: inss[key] }))
 }
+function mergeInstructions(
+  inss1: Instruction[],
+  inss2: Instruction[]
+): Instruction[] {
+  return inss1.concat(
+    inss2.filter(
+      ({ query, handler }: Instruction) =>
+        !inss1.some(({ query: q, handler: h }) => q === query && h === handler)
+    )
+  )
+}
+// --------------------  types  --------------------
+type Options = {
+  watch?: boolean
+}
+// type Instructions = Record<string, (elm: XElement) => void | Fn>

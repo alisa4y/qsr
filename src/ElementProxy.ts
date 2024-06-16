@@ -7,6 +7,7 @@ export function getLiftProxy(elm: XElement) {
 }
 function lift(elm: XElement, data = {}) {
   const { branch, key, item } = elm.dataset
+
   if (branch) {
     data = branch.split(".").reduce((o: any, k: string) => (o[k] = {}), data)
   }
@@ -23,15 +24,20 @@ function lift(elm: XElement, data = {}) {
       const elmType = elm.getAttribute("type")
       const prop = getValueProp(elm as any)
       let getter
+
       if (elmType === "number") getter = () => parseInt((elm as any)[prop])
       else getter = () => (elm as any)[prop]
+
       definePropertyDescriptor(data, key, getter, (v: any) =>
         setHtmlElement(elm as any, v)
       )
     }
+
     return data
   }
+
   for (const child of elm.children) lift(child as XElement, data)
+
   return data
 }
 function getValueProp(elm: XElement): string {
@@ -181,7 +187,7 @@ const genKeys = cache((length: number) => {
 })
 function createArrayEval(elm: XElement) {
   const template = document.getElementById(
-    elm.dataset.item
+    elm.dataset.item as string
   ) as HTMLTemplateElement
   return new Proxy([], {
     set(t, p, v) {
@@ -273,10 +279,10 @@ function createArrayEval(elm: XElement) {
         default:
           if (p in ArProto)
             return ArProto[p as any].bind(
-              [...elm.children].map((child: XElement) => child.eval)
+              [...elm.children].map(child => (child as XElement).eval)
             )
           return (
-            [...elm.children].map((child: XElement) => child.eval) as any
+            [...elm.children].map(child => (child as XElement).eval) as any
           )[p]
       }
     },

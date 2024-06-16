@@ -3,6 +3,7 @@
     "declaration": true,
     "module": "Node16",
     "noImplicitAny": true,
+    "strict": true,
     "moduleResolution": "Node16",
     "outDir": "dist"
   },

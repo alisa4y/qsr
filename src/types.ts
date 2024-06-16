@@ -1,8 +1,11 @@
 export type Fn = (...args: any[]) => any
-export interface XElement extends Element {
+export type XElement = HTMLElement & {
   eval: any
-  dataset?: Record<string, any>
   __set: (data: any) => void
-  __applied?: Record<string, boolean>
-  __cleanup?: Record<string, Fn>
+  __applied?: Map<Instruction, Fn>
+}
+
+export type Instruction = {
+  query: string
+  handler: (elm: XElement) => void | Fn
 }
