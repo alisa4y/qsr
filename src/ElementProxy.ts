@@ -1,5 +1,5 @@
 import { Fn, XElement } from "./types"
-import { isInteger, ox, cache } from "vaco"
+import { ox, cache } from "vaco"
 
 export function getLiftProxy(elm: XElement) {
   if (elm.dataset.item !== undefined) return createArrayEval(elm)
@@ -191,13 +191,13 @@ function createArrayEval(elm: XElement) {
   ) as HTMLTemplateElement
   return new Proxy([], {
     set(t, p, v) {
-      if (isInteger(p as string)) {
+      if (Number.isInteger(p as string)) {
         ;(elm.children[p as unknown as number] as unknown as XElement).eval = v
       }
       return true
     },
     get(t, p) {
-      if (isInteger(p as string))
+      if (Number.isInteger(p as string))
         return (elm.children[p as unknown as number] as unknown as XElement)
           .eval
       switch (p) {
@@ -291,6 +291,8 @@ function createArrayEval(elm: XElement) {
     },
   })
 }
+
+// --------------------  helpers  --------------------
 function createItem(template: HTMLTemplateElement) {
   const t = template.content.cloneNode(true) as HTMLElement
   const item = t.children[0] as XElement

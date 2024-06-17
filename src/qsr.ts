@@ -1,6 +1,6 @@
 import { ael, domTraversal, qsa } from "./tools"
-import { Instruction, XElement } from "./types"
-import { ox } from "vaco"
+import { Fn, Instruction, XElement } from "./types"
+import { ox, separateArray } from "vaco"
 
 // TODO: add pseudo selector like :click support for qsr
 
@@ -17,7 +17,7 @@ let qsrfn = (instructions: Record<string, Instruction["handler"]>) => {
     case "loading":
       ael(window, "DOMContentLoaded", () => initQsr(insArray))
       qsrfn = newInstructions =>
-        mutateInstructions(insArray, instructions2array(newInstructions))
+        insArray.push(...instructions2array(newInstructions))
 
       break
   }
@@ -30,7 +30,7 @@ function initQsr(insArray: Instruction[]) {
 
   qsrfn = newInstructions => {
     domTraversal(e => applyInstructionsToElm(insArray, e), document.body as any)
-    mutateInstructions(insArray, instructions2array(newInstructions))
+    insArray.push(...instructions2array(newInstructions))
   }
 }
 export function qsh(
@@ -56,7 +56,7 @@ export function qsh(
 }
 
 // --------------------  helpers  --------------------
-function observe(ins: Instruction[], elm: XElement | HTMLElement) {
+function observe(inss: Instruction[], elm: XElement | HTMLElement) {
   const observer = new MutationObserver(mutationList => {
     mutationList.forEach(mutation => {
       switch (mutation.type) {
@@ -64,7 +64,10 @@ function observe(ins: Instruction[], elm: XElement | HTMLElement) {
           Array.from(mutation.addedNodes)
             .filter(node => node.nodeType === 1)
             .forEach(elm =>
-              domTraversal(e => applyInstructionsToElm(ins, e), elm as XElement)
+              domTraversal(
+                e => applyInstructionsToElm(inss, e),
+                elm as XElement
+              )
             )
           Array.from(mutation.removedNodes)
             .filter(node => node.nodeType === 1)
@@ -75,12 +78,21 @@ function observe(ins: Instruction[], elm: XElement | HTMLElement) {
         case "attributes":
           const elm = mutation.target as XElement
 
-          if (elm.__applied !== undefined)
-            Array.from(elm.__applied.entries())
-              .filter(([{ query }]) => !elm.matches(query))
-              .forEach(([, cleanup]) => cleanup())
+          if (elm.__applied !== undefined) {
+            const appliedInstructions = elm.__applied
+            const { matches: applied, nonMatches: notApplied } = separateArray(
+              inss,
+              ins => appliedInstructions.has(ins)
+            )
 
-          applyInstructionsToElm(ins, elm)
+            applied
+              .filter(({ query }) => !elm.matches(query))
+              .forEach(ins => {
+                ;(appliedInstructions.get(ins) as Fn)()
+                appliedInstructions.delete(ins)
+              })
+            applyInstructionsToElm(notApplied, elm)
+          } else applyInstructionsToElm(inss, elm)
 
           break
       }
@@ -96,7 +108,7 @@ function applyInstructionsToElm(instructions: Instruction[], elm: XElement) {
   const applied: XElement["__applied"] = elm.__applied || new Map()
 
   instructions
-    .filter(ins => !applied.has(ins) && elm.matches(ins.query))
+    .filter(ins => elm.matches(ins.query))
     .forEach(ins => {
       applied.set(ins, ins.handler(elm) || ox)
     })
@@ -112,16 +124,7 @@ function instructions2array(
 ): Instruction[] {
   return Object.keys(inss).map(key => ({ query: key, handler: inss[key] }))
 }
-function mutateInstructions(inss1: Instruction[], inss2: Instruction[]): void {
-  inss2
-    .filter(
-      ({ query, handler }: Instruction) =>
-        !inss1.some(({ query: q, handler: h }) => q === query && h === handler)
-    )
-    .forEach(ins => {
-      inss1.push(ins)
-    })
-}
+
 // --------------------  types  --------------------
 type Options = {
   watch?: boolean
