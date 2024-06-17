@@ -1,4 +1,3 @@
-import { getRandomInt } from "vaco"
 import {
   qsr,
   ael,
@@ -88,4 +87,7 @@ function randomName(length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength))
   }
   return result
+}
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }

@@ -29,30 +29,11 @@ function initQsr(insArray: Instruction[]) {
   observe(insArray, document.body)
 
   qsrfn = newInstructions => {
-    domTraversal(e => applyInstructionsToElm(insArray, e), document.body as any)
-    insArray.push(...instructions2array(newInstructions))
-  }
-}
-export function qsh(
-  ins: Record<string, Instruction["handler"]>,
-  root: XElement | HTMLElement,
-  { watch }: Options = {}
-) {
-  const insArray = instructions2array(ins)
+    const newInsAr = instructions2array(newInstructions)
 
-  switch (document.readyState) {
-    case "complete":
-    case "interactive":
-      domTraversal(e => applyInstructionsToElm(insArray, e), root as XElement)
-      break
-    case "loading":
-      ael(window, "DOMContentLoaded", () =>
-        domTraversal(e => applyInstructionsToElm(insArray, e), root as XElement)
-      )
-      break
+    insArray.push(...newInsAr)
+    domTraversal(e => applyInstructionsToElm(newInsAr, e), document.body as any)
   }
-
-  if (watch) observe(insArray, root)
 }
 
 // --------------------  helpers  --------------------
@@ -98,6 +79,7 @@ function observe(inss: Instruction[], elm: XElement | HTMLElement) {
       }
     })
   })
+
   observer.observe(elm, {
     childList: true,
     subtree: true,
@@ -129,4 +111,3 @@ function instructions2array(
 type Options = {
   watch?: boolean
 }
-// type Instructions = Record<string, (elm: XElement) => void | Fn>
