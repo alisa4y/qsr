@@ -5,7 +5,7 @@
     "noImplicitAny": true,
     "strict": true,
     "moduleResolution": "Node16",
-    "outDir": "dist"
+    "outDir": "build"
   },
   "include": [
     "src"

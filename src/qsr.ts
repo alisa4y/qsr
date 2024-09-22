@@ -87,7 +87,7 @@ function observe(inss: Instruction[], elm: XElement | HTMLElement) {
   })
 }
 function applyInstructionsToElm(instructions: Instruction[], elm: XElement) {
-  const applied: XElement["__applied"] = elm.__applied || new Map()
+  const applied: XElement["__applied"] = elm.__applied ?? new Map()
 
   instructions
     .filter(ins => elm.matches(ins.query))

@@ -1,5 +1,0 @@
-data-key // name of key when retrieve eval of element
-data-item // takes template's id
-
-the template which is used for data-item can only have one child and this first child will be used for the list
-

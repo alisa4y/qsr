@@ -1,28 +1,36 @@
 {
   "name": "qs-rule",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
     "start": "npx run",
-    "test": "npx cypress open"
+    "test": "jest"
   },
   "author": "ali safari",
   "license": "MIT",
-  "devDependencies": {
-    "cypress": "^11.2.0",
-    "ninja-server": "file:../ninja server",
-    "typescript": "^4.9.3"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/alisa4y/qsr.git"
   },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "jsdom",
+    "rootDir": "test"
+  },
+  "devDependencies": {
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^29.5.13",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^25.0.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.2"
+  },
   "dependencies": {
-    "bafu": "^0.0.7",
-    "vaco": "^2.1.0"
+    "vaco": "^3.0.1"
   }
 }

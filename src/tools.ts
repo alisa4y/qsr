@@ -2,10 +2,10 @@ import { XElement } from "./types"
 
 // --------------------  main exports  --------------------
 export const qs = (selector: string, elm: ScopeElement = document) => {
-  return elm.querySelector(selector) as XElement
+  return elm.querySelector(selector) as XElement | null
 }
 export function qsa(selector: string, elm: ScopeElement = document) {
-  return [...elm.querySelectorAll(selector)]
+  return Array.from(elm.querySelectorAll(selector)) as XElement[]
 }
 export function mqs(...queries: [...string[], ScopeElement]) {
   const elm = queries.pop() as XElement
