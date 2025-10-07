@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { ael, qs, qsa, qsr } from "../src"
 
 describe("eval property", () => {
-  test("access element innerText with data-item attribute", async () => {
+  test("access element innerText with data-key attribute", async () => {
     document.body.innerHTML = `<div class="info">
       <span data-key="name">hi</span>
   </div>`
@@ -26,7 +26,7 @@ describe("eval property", () => {
     expect(span.eval).toBe(10)
     expect(typeof span.eval).toBe("number")
   })
-  test("modify element innerText with data-item attribute", async () => {
+  test("modify element innerText with data-key attribute", async () => {
     document.body.innerHTML = `<div class="info">
     <span data-key="name">hi</span>
   </div>`
@@ -43,7 +43,7 @@ describe("eval property", () => {
     expect(info.eval.name).toBe("greetings")
     expect(span.eval).toBe("greetings")
   })
-  test("access text-input value with data-item attribute", async () => {
+  test("access text-input value with data-key attribute", async () => {
     document.body.innerHTML = `<div class="info">
       <input data-key="name" value="ali"/>
   </div>`
@@ -54,7 +54,7 @@ describe("eval property", () => {
     expect(info.eval.name).toBe("ali")
     expect(inputField.eval).toBe("ali")
   })
-  test("modify text-input value with data-item attribute", async () => {
+  test("modify text-input value with data-key attribute", async () => {
     document.body.innerHTML = `<div class="info">
       <input data-key="name" value="ali"/>
   </div>`
